@@ -1,0 +1,40 @@
+USE [WEB9000];
+
+-- 禁用外鍵約束
+ALTER TABLE [dbo].[W9K_EMPLOYEE] NOCHECK CONSTRAINT FK_EMP_DEPT;
+ALTER TABLE [dbo].[W9K_MANAGER] NOCHECK CONSTRAINT FK_MGR_DEPT;
+
+-- 清除所有資料
+DELETE FROM [dbo].[W9K_DEPARTMENT];
+
+-- 新增部門資料
+INSERT INTO [dbo].[W9K_DEPARTMENT] (DEPARTMENT_NAME, CREATE_DATE, UPDATE_DATE) VALUES
+('人事室', GETDATE(), GETDATE()),
+('園本部', GETDATE(), GETDATE()),
+('臨時人員', GETDATE(), GETDATE()),
+('動物組', GETDATE(), GETDATE()),
+('保育研究中心', GETDATE(), GETDATE()),
+('環境組', GETDATE(), GETDATE()),
+('育樂組', GETDATE(), GETDATE()),
+('推廣組', GETDATE(), GETDATE()),
+('總務室', GETDATE(), GETDATE()),
+('機電室', GETDATE(), GETDATE()),
+('會計室', GETDATE(), GETDATE()),
+('政風室', GETDATE(), GETDATE()),
+('獸醫室', GETDATE(), GETDATE()),
+('駐警隊', GETDATE(), GETDATE()),
+('資訊室', GETDATE(), GETDATE()),
+('替代役', GETDATE(), GETDATE()),
+('勞安室', GETDATE(), GETDATE()),
+('廠商-總務', GETDATE(), GETDATE()),
+('廠商育樂-保全', GETDATE(), GETDATE()),
+('廠商育樂-駕駛', GETDATE(), GETDATE()),
+('廠商育樂-票務、工讀', GETDATE(), GETDATE()),
+('廠商機電-空調', GETDATE(), GETDATE()),
+('廠商推廣', GETDATE(), GETDATE()),
+('廠商-環境', GETDATE(), GETDATE()),
+('廠商會計', GETDATE(), GETDATE());
+
+-- 重新啟用外鍵約束
+ALTER TABLE [dbo].[W9K_EMPLOYEE] CHECK CONSTRAINT FK_EMP_DEPT;
+ALTER TABLE [dbo].[W9K_MANAGER] CHECK CONSTRAINT FK_MGR_DEPT;

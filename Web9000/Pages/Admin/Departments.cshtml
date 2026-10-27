@@ -1,0 +1,270 @@
+@page
+@model Web9000.Pages.Admin.DepartmentsModel
+@{
+    ViewData["Title"] = "部門管理";
+}
+
+<div class="page-header">
+    <h4 class="mb-0"><i class="bi bi-building me-2"></i>部門管理</h4>
+</div>
+
+<!-- 成功/錯誤訊息 -->
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- 編輯區 -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0">部門編輯</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Save" id="departmentEditForm">
+            <input type="hidden" asp-for="SelectedDepartmentId" id="SelectedDepartmentId" />
+            <input type="hidden" asp-for="CurrentPage" />
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label for="DepartmentName" class="form-label fw-semibold">部門名稱</label>
+                    <input type="text" 
+                           class="form-control form-control-lg" 
+                           asp-for="DepartmentName" 
+                           id="DepartmentName"
+                           placeholder="請輸入部門名稱"
+                           required>
+                </div>
+
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-secondary me-2" onclick="clearForm()">
+                        <i class="bi bi-plus-circle me-1"></i>新增
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>儲存
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 功能列 -->
+<div class="card mb-3">
+    <div class="card-body">
+        <button type="button" class="btn btn-danger" onclick="deleteSelected()">
+            <i class="bi bi-trash me-1"></i>刪除選取項目
+        </button>
+    </div>
+</div>
+
+<!-- 資料列表區 -->
+@if (Model.Departments.Any())
+{
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    部門清單 
+                    <span class="badge bg-primary ms-2">共 @Model.TotalRecords 筆</span>
+                </h6>
+                <small class="text-muted">
+                    第 @Model.CurrentPage / @Model.TotalPages 頁
+                </small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" asp-page-handler="Delete" id="deleteForm">
+                <input type="hidden" asp-for="CurrentPage" />
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" id="checkAll">
+                                </th>
+                                <th>部門名稱</th>
+                                <th>員工人數</th>
+                                <th width="120">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dept in Model.Departments)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" 
+                                               class="form-check-input row-checkbox" 
+                                               name="SelectedDepartmentIds" 
+                                               value="@dept.DepartmentId">
+                                    </td>
+                                    <td>@dept.DepartmentName</td>
+                                    <td>
+                                        @if (dept.EmployeeCount > 0)
+                                        {
+                                            <span class="badge bg-info">@dept.EmployeeCount 人</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">0 人</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary" 
+                                                onclick="loadDepartment(@dept.DepartmentId)">
+                                            <i class="bi bi-pencil"></i> 編輯
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+
+        <!-- 分頁控制 -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white">
+                <nav aria-label="分頁導航">
+                    <ul class="pagination justify-content-center mb-0">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage - 1))">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@i)">@i</a>
+                            </li>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage + 1))">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@Model.TotalPages)">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="text-muted mt-3 mb-0">目前沒有部門資料</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // 全選/取消全選
+        document.getElementById('checkAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // 載入部門資料至編輯區
+        function loadDepartment(deptId) {
+            fetch(`?handler=Department&id=${deptId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        document.getElementById('SelectedDepartmentId').value = result.data.departmentId;
+                        document.getElementById('DepartmentName').value = result.data.departmentName;
+
+                        // 捲動到編輯區
+                        document.getElementById('departmentEditForm').scrollIntoView({ behavior: 'smooth' });
+                        document.getElementById('DepartmentName').focus();
+                    } else {
+                        alert('載入失敗：' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('載入失敗：' + error);
+                });
+        }
+
+        // 清空表單（新增模式）
+        function clearForm() {
+            document.getElementById('SelectedDepartmentId').value = '';
+            document.getElementById('DepartmentName').value = '';
+            document.getElementById('DepartmentName').focus();
+        }
+
+        // 刪除選取的部門
+        function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('請勾選要刪除的部門');
+                return;
+            }
+
+            if (!confirm(`確定要刪除選取的 ${checkboxes.length} 個部門嗎？\n※ 注意：有員工隸屬的部門無法刪除`)) {
+                return;
+            }
+
+            document.getElementById('deleteForm').submit();
+        }
+
+        // 分頁功能
+        function goToPage(page) {
+            const form = document.createElement('form');
+            form.method = 'get';
+
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'CurrentPage';
+            pageInput.value = page;
+            form.appendChild(pageInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // 表單驗證
+        document.getElementById('departmentEditForm').addEventListener('submit', function(e) {
+            const deptName = document.getElementById('DepartmentName').value.trim();
+            if (!deptName) {
+                e.preventDefault();
+                alert('請輸入部門名稱');
+                return false;
+            }
+        });
+    </script>
+}

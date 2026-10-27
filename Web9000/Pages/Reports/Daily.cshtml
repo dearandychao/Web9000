@@ -1,0 +1,80 @@
+@page
+@model Web9000.Pages.Reports.DailyModel
+@{
+    ViewData["Title"] = "日報表";
+}
+
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="bi bi-file-earmark-text"></i> 日報表
+    </h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-funnel"></i> 查詢條件
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="Export" id="exportForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="reportDate" class="form-label">日期</label>
+                        <input type="date" class="form-control" id="reportDate" asp-for="ReportDate" required />
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-file-earmark-excel"></i> 匯出
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        @if (Model.IsAdmin)
+                        {
+                            <text>將匯出該日期全體員工的差勤資料</text>
+                        }
+                        else
+                        {
+                            <text>將匯出該日期您所管理部門員工的差勤資料</text>
+                        }
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-info-circle fs-1 text-muted"></i>
+                <p class="text-muted mt-3 mb-0">請選擇日期與條件後按下「匯出」按鈕產生日報表</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 表單送出時顯示載入提示
+        document.getElementById('exportForm').addEventListener('submit', function() {
+            const btn = this.querySelector('button[type="submit"]');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>匯出中...';
+
+            // 檔案下載不會觸發頁面跳轉，所以2秒後恢復按鈕狀態
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }, 2000);
+        });
+    </script>
+}

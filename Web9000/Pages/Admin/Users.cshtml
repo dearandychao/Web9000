@@ -1,0 +1,571 @@
+@page
+@model Web9000.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "使用者管理";
+}
+
+<div class="page-header">
+    <h4 class="mb-0"><i class="bi bi-people me-2"></i>使用者管理</h4>
+</div>
+
+<!-- 成功/錯誤訊息 -->
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- 編輯區 -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0">使用者編輯</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Save" id="userEditForm">
+            <input type="hidden" asp-for="SelectedUserId" id="SelectedUserId" />
+            <input type="hidden" asp-for="CurrentPage" />
+            <input type="hidden" asp-for="SearchKeyword" />
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">員工編號</label>
+                    <input type="text" 
+                           class="form-control bg-light text-muted" 
+                           asp-for="EditUser.EmployeeNo" 
+                           id="EditEmployeeNo"
+                           readonly>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">員工姓名</label>
+                    <input type="text" 
+                           class="form-control bg-light text-muted" 
+                           asp-for="EditUser.EmployeeName" 
+                           id="EditEmployeeName"
+                           readonly>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="EditDepartmentId" class="form-label fw-semibold">部門</label>
+                    <select class="form-select" 
+                            asp-for="EditUser.DepartmentId"
+                            asp-items="Model.DepartmentList"
+                            id="EditDepartmentId">
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="EditEmployeeType" class="form-label fw-semibold">權限</label>
+                    <select class="form-select" 
+                            asp-for="EditUser.EmployeeType"
+                            id="EditEmployeeType">
+                        <option value="">請選擇</option>
+                        <option value="0">一般使用者</option>
+                        <option value="1">系統管理者</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="EditLoginName" class="form-label fw-semibold">登入帳號</label>
+                    <input type="text" 
+                           class="form-control" 
+                           asp-for="EditUser.LoginName" 
+                           id="EditLoginName"
+                           placeholder="請輸入登入帳號"
+                           required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="EditLoginPassword" class="form-label fw-semibold">登入密碼</label>
+                    <input type="password" 
+                           class="form-control" 
+                           asp-for="EditUser.LoginPassword" 
+                           id="EditLoginPassword"
+                           placeholder="不修改請留空">
+                    <small class="text-muted">※ 不修改密碼請留空</small>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="EditConfirmPassword" class="form-label fw-semibold">確認密碼</label>
+                    <input type="password" 
+                           class="form-control" 
+                           asp-for="EditUser.ConfirmPassword" 
+                           id="EditConfirmPassword"
+                           placeholder="不修改請留空">
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>儲存
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                        <i class="bi bi-x-circle me-1"></i>取消
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 查詢與功能列 -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="post" asp-page-handler="Search" class="row g-3 align-items-end">
+            <input type="hidden" asp-for="CurrentPage" value="1" />
+
+            <div class="col-md-4">
+                <label for="SearchKeyword" class="form-label fw-semibold">搜尋</label>
+                <input type="text" 
+                       class="form-control" 
+                       asp-for="SearchKeyword" 
+                       id="SearchKeyword"
+                       placeholder="輸入員工編號或姓名">
+            </div>
+
+            <div class="col-md-8">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>查詢
+                </button>
+                <button type="button" class="btn btn-danger" onclick="deleteSelected()">
+                    <i class="bi bi-trash me-1"></i>刪除
+                </button>
+                <button type="button" 
+                        class="btn btn-success"
+                        onclick="importEmployees()">
+                    <i class="bi bi-download me-1"></i>匯入
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 資料列表區 -->
+@if (Model.Users.Any())
+{
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    使用者清單 
+                    <span class="badge bg-primary ms-2">共 @Model.TotalRecords 筆</span>
+                </h6>
+                <small class="text-muted">
+                    第 @Model.CurrentPage / @Model.TotalPages 頁
+                </small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" asp-page-handler="Delete" id="deleteForm">
+                <input type="hidden" asp-for="CurrentPage" />
+                <input type="hidden" asp-for="SearchKeyword" />
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" id="checkAll">
+                                </th>
+                                <th>員工編號</th>
+                                <th>員工姓名</th>
+                                <th>部門</th>
+                                <th>登入帳號</th>
+                                <th>權限</th>
+                                <th>卡號</th>
+                                <th width="150">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Users.Count; i++)
+                            {
+                                var user = Model.Users[i];
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" 
+                                               class="form-check-input row-checkbox" 
+                                               name="SelectedUserIds" 
+                                               value="@user.EmployeeId">
+                                    </td>
+                                    <td>@user.EmployeeNo</td>
+                                    <td>@user.EmployeeName</td>
+                                    <td>@user.DepartmentName</td>
+                                    <td>@user.LoginName</td>
+                                    <td>
+                                        @if (user.EmployeeType == 1)
+                                        {
+                                            <span class="badge bg-danger">系統管理者</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">一般使用者</span>
+                                        }
+                                    </td>
+                                    <td>@user.CardNo</td>
+                                    <td>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary" 
+                                                onclick="loadUser(@user.EmployeeId)">
+                                            <i class="bi bi-pencil"></i> 編輯
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary" 
+                                                onclick="openManagerModal(@user.EmployeeId, '@user.EmployeeName')">
+                                            <i class="bi bi-building"></i> 管理部門
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+
+        <!-- 分頁控制 -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white">
+                <nav aria-label="分頁導航">
+                    <ul class="pagination justify-content-center mb-0">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage - 1))">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@i)">@i</a>
+                            </li>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage + 1))">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@Model.TotalPages)">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="text-muted mt-3 mb-0">目前沒有使用者資料</p>
+        </div>
+    </div>
+}
+
+<!-- 管理部門 Modal -->
+<div class="modal fade" id="managerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-building me-2"></i>管理部門設定
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="managerEmployeeId" />
+                <p>
+                    員工：<strong id="managerEmployeeName"></strong>
+                </p>
+                <hr>
+                <div id="departmentCheckboxes">
+                    <!-- 動態載入部門勾選框 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveManagers()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 全選/取消全選
+        document.getElementById('checkAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // 載入使用者資料至編輯區
+        function loadUser(userId) {
+            fetch(`?handler=User&id=${userId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        document.getElementById('SelectedUserId').value = result.data.employeeId;
+                        document.getElementById('EditEmployeeNo').value = result.data.employeeNo;
+                        document.getElementById('EditEmployeeName').value = result.data.employeeName;
+                        document.getElementById('EditDepartmentId').value = result.data.departmentId || '';
+                        document.getElementById('EditLoginName').value = result.data.loginName;
+                        document.getElementById('EditEmployeeType').value = result.data.employeeType;
+                        document.getElementById('EditLoginPassword').value = '';
+                        document.getElementById('EditConfirmPassword').value = '';
+
+                        // 捲動到編輯區
+                        document.getElementById('userEditForm').scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert('載入失敗：' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('載入失敗：' + error);
+                });
+        }
+
+        // 清空表單
+        function clearForm() {
+            document.getElementById('SelectedUserId').value = '';
+            document.getElementById('EditEmployeeNo').value = '';
+            document.getElementById('EditEmployeeName').value = '';
+            document.getElementById('EditDepartmentId').value = '';
+            document.getElementById('EditLoginName').value = '';
+            document.getElementById('EditEmployeeType').value = '';
+            document.getElementById('EditLoginPassword').value = '';
+            document.getElementById('EditConfirmPassword').value = '';
+        }
+
+        // 刪除選取的使用者
+        function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('請勾選要刪除的使用者');
+                return;
+            }
+
+            if (!confirm(`確定要刪除選取的 ${checkboxes.length} 位使用者嗎？`)) {
+                return;
+            }
+
+            document.getElementById('deleteForm').submit();
+        }
+
+        // 分頁功能
+        function goToPage(page) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '?handler=Search';
+
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'CurrentPage';
+            pageInput.value = page;
+            form.appendChild(pageInput);
+
+            const keywordInput = document.createElement('input');
+            keywordInput.type = 'hidden';
+            keywordInput.name = 'SearchKeyword';
+            keywordInput.value = document.getElementById('SearchKeyword').value;
+            form.appendChild(keywordInput);
+
+            // 增加 CSRF Token
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            form.appendChild(tokenInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // 匯入員工（含進度條）
+        function importEmployees() {
+            if (!confirm('確定要從指紋機系統匯入員工資料嗎？')) {
+                return;
+            }
+
+            // 顯示進度提示
+            const progressHtml = `
+                <div class="alert alert-info" id="importProgress">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                        <div>
+                            <strong>匯入中...</strong><br>
+                            <small>正在從指紋機系統匯入員工資料，請稍候</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const container = document.querySelector('.page-header');
+            container.insertAdjacentHTML('afterend', progressHtml);
+
+            // 發送匯入請求
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('?handler=Import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('匯入失敗');
+                }
+            })
+            .then(html => {
+                // 移除進度提示並重新載入頁面
+                document.getElementById('importProgress')?.remove();
+                location.reload();
+            })
+            .catch(error => {
+                document.getElementById('importProgress')?.remove();
+                alert('匯入發生錯誤：' + error.message);
+            });
+        }
+
+        // 部門清單 (從後端傳遞)
+        const departmentList = [
+            @foreach (var dept in Model.DepartmentList.Where(d => !string.IsNullOrEmpty(d.Value)))
+            {
+                <text>{ value: '@dept.Value', text: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(dept.Text))' },</text>
+            }
+        ];
+
+        // 開啟管理部門 Modal
+        function openManagerModal(employeeId, employeeName) {
+            document.getElementById('managerEmployeeId').value = employeeId;
+            document.getElementById('managerEmployeeName').textContent = employeeName;
+
+            // 載入可管理的部門
+            fetch(`?handler=ManagedDepartments&employeeId=${employeeId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const managedDeptIds = result.data;
+                        const container = document.getElementById('departmentCheckboxes');
+                        container.innerHTML = '';
+
+                        // 產生部門勾選框
+                        departmentList.forEach(dept => {
+                            const divEl = document.createElement('div');
+                            divEl.className = 'form-check mb-2';
+
+                            const checkboxEl = document.createElement('input');
+                            checkboxEl.type = 'checkbox';
+                            checkboxEl.className = 'form-check-input dept-checkbox';
+                            checkboxEl.value = dept.value;
+                            checkboxEl.id = 'dept_' + dept.value;
+                            if (managedDeptIds.includes(parseInt(dept.value))) {
+                                checkboxEl.checked = true;
+                            }
+
+                            const labelEl = document.createElement('label');
+                            labelEl.className = 'form-check-label';
+                            labelEl.htmlFor = 'dept_' + dept.value;
+                            labelEl.textContent = dept.text;
+
+                            divEl.appendChild(checkboxEl);
+                            divEl.appendChild(labelEl);
+                            container.appendChild(divEl);
+                        });
+
+                        const modal = new bootstrap.Modal(document.getElementById('managerModal'));
+                        modal.show();
+                    } else {
+                        alert('載入失敗：' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('載入失敗：' + error);
+                });
+        }
+
+        // 儲存管理部門
+        function saveManagers() {
+            const employeeId = parseInt(document.getElementById('managerEmployeeId').value);
+            const checkboxes = document.querySelectorAll('.dept-checkbox:checked');
+            const departmentIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            const formData = new FormData();
+            formData.append('employeeId', employeeId);
+            departmentIds.forEach(id => formData.append('departmentIds', id));
+
+            fetch('?handler=SaveManagers', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('managerModal'));
+                    modal.hide();
+                } else {
+                    alert('儲存失敗：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('儲存失敗：' + error);
+            });
+        }
+
+        // 表單驗證
+        document.getElementById('userEditForm').addEventListener('submit', function(e) {
+            const loginName = document.getElementById('EditLoginName').value.trim();
+            if (!loginName) {
+                e.preventDefault();
+                alert('請輸入登入帳號');
+                return false;
+            }
+
+            const password = document.getElementById('EditLoginPassword').value;
+            const confirmPassword = document.getElementById('EditConfirmPassword').value;
+
+            if (password && password !== confirmPassword) {
+                e.preventDefault();
+                alert('密碼與確認密碼不一致');
+                return false;
+            }
+
+            const userId = document.getElementById('SelectedUserId').value;
+            if (!userId) {
+                e.preventDefault();
+                alert('請從列表中選擇要編輯的使用者');
+                return false;
+            }
+        });
+    </script>
+}

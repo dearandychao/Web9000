@@ -1,0 +1,349 @@
+@page
+@model Web9000.Pages.Records.QueryModel
+@{
+    ViewData["Title"] = "紀錄查詢";
+}
+
+<div class="page-header">
+    <h4 class="mb-0"><i class="bi bi-search me-2"></i>紀錄查詢</h4>
+</div>
+
+<!-- 查詢條件區 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="SelectedDepartmentId" class="form-label fw-semibold">部門</label>
+                    <select class="form-select" 
+                            id="SelectedDepartmentId" 
+                            name="SelectedDepartmentId" 
+                            asp-for="SelectedDepartmentId"
+                            asp-items="Model.DepartmentList">
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="SelectedEmployeeNo" class="form-label fw-semibold">員工</label>
+                    <select class="form-select" 
+                            id="SelectedEmployeeNo" 
+                            name="SelectedEmployeeNo" 
+                            asp-for="SelectedEmployeeNo"
+                            asp-items="Model.EmployeeList">
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="DateFrom" class="form-label fw-semibold">日期(起)</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="DateFrom" 
+                           name="DateFrom" 
+                           asp-for="DateFrom" 
+                           required>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="DateTo" class="form-label fw-semibold">日期(迄)</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="DateTo" 
+                           name="DateTo" 
+                           asp-for="DateTo" 
+                           required>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" 
+                            asp-page-handler="Query" 
+                            class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>查詢
+                    </button>
+                    <button type="submit" 
+                            asp-page-handler="Export" 
+                            class="btn btn-success flex-fill">
+                        <i class="bi bi-file-earmark-excel me-1"></i>報表
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mt-3 mb-0" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            </div>
+        }
+    </div>
+</div>
+
+<!-- 資料列表區 -->
+@if (Model.Records.Any())
+{
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    查詢結果 
+                    <span class="badge bg-primary ms-2">共 @Model.TotalRecords 筆</span>
+                </h6>
+                <small class="text-muted">
+                    第 @Model.CurrentPage / @Model.TotalPages 頁
+                </small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <a href="javascript:void(0)" onclick="sortBy('EmployeeID')" class="text-decoration-none text-dark">
+                                    員工編號 
+                                    @if (Model.SortBy == "EmployeeID")
+                                    {
+                                        <i class="bi bi-caret-@(Model.SortOrder == "ASC" ? "up" : "down")-fill"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>
+                                <a href="javascript:void(0)" onclick="sortBy('EmployeeName')" class="text-decoration-none text-dark">
+                                    員工姓名
+                                    @if (Model.SortBy == "EmployeeName")
+                                    {
+                                        <i class="bi bi-caret-@(Model.SortOrder == "ASC" ? "up" : "down")-fill"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>卡號</th>
+                            <th>
+                                <a href="javascript:void(0)" onclick="sortBy('DateTime')" class="text-decoration-none text-dark">
+                                    刷卡時間
+                                    @if (Model.SortBy == "DateTime")
+                                    {
+                                        <i class="bi bi-caret-@(Model.SortOrder == "ASC" ? "up" : "down")-fill"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>
+                                <a href="javascript:void(0)" onclick="sortBy('TerminalName')" class="text-decoration-none text-dark">
+                                    指紋機位置
+                                    @if (Model.SortBy == "TerminalName")
+                                    {
+                                        <i class="bi bi-caret-@(Model.SortOrder == "ASC" ? "up" : "down")-fill"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>事件描述</th>
+                            <th>驗證方式</th>
+                            <th>班別</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.Records)
+                        {
+                            <tr>
+                                <td>@record.EmployeeId</td>
+                                <td>@record.EmployeeName</td>
+                                <td>@record.CardNo</td>
+                                <td>@record.DateTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                                <td>@record.TerminalName</td>
+                                <td>
+                                    @if (record.EventAlarmCode == "正常")
+                                    {
+                                        <span class="badge bg-success">@record.EventAlarmCode</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">@record.EventAlarmCode</span>
+                                    }
+                                </td>
+                                <td>@record.VerificationSource</td>
+                                <td>
+                                    @if (record.FKeyDescription == "上班")
+                                    {
+                                        <span class="badge bg-info">@record.FKeyDescription</span>
+                                    }
+                                    else if (record.FKeyDescription == "下班")
+                                    {
+                                        <span class="badge bg-secondary">@record.FKeyDescription</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark">@record.FKeyDescription</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 分頁控制 -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white">
+                <nav aria-label="分頁導航">
+                    <ul class="pagination justify-content-center mb-0">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage - 1))">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@i)">@i</a>
+                            </li>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage + 1))">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0)" onclick="goToPage(@Model.TotalPages)">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            @if (Model.HasSearched)
+            {
+                <p class="text-muted mt-3 mb-0">沒有符合的資料</p>
+            }
+            else
+            {
+                <p class="text-muted mt-3 mb-0">請設定查詢條件後按下「查詢」按鈕</p>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // 部門變更時，重新載入員工清單
+        document.getElementById('SelectedDepartmentId').addEventListener('change', function() {
+            const deptId = this.value;
+            const employeeSelect = document.getElementById('SelectedEmployeeNo');
+
+            if (!deptId) {
+                // 清空員工清單
+                employeeSelect.innerHTML = '<option value="ALL">全體員工</option>';
+                return;
+            }
+
+            // 呼叫 API 載入員工
+            fetch(`?handler=Employees&departmentId=${deptId}`)
+                .then(response => response.json())
+                .then(data => {
+                    employeeSelect.innerHTML = '';
+                    data.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.value;
+                        option.text = emp.text;
+                        employeeSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('載入員工清單失敗:', error);
+                    employeeSelect.innerHTML = '<option value="ALL">全體員工</option>';
+                });
+        });
+
+        // 分頁功能
+        function goToPage(page) {
+            const form = document.querySelector('form');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'CurrentPage';
+            input.value = page;
+            form.appendChild(input);
+
+            const button = document.createElement('button');
+            button.type = 'submit';
+            button.name = 'handler';
+            button.value = 'Query';
+            button.style.display = 'none';
+            form.appendChild(button);
+            button.click();
+        }
+
+        // 日期驗證
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const dateFrom = new Date(document.getElementById('DateFrom').value);
+            const dateTo = new Date(document.getElementById('DateTo').value);
+
+            if (dateFrom > dateTo) {
+                e.preventDefault();
+                alert('起始日期不可大於結束日期');
+                return false;
+            }
+        });
+
+        // 排序功能
+        function sortBy(column) {
+            const form = document.querySelector('form');
+
+            // 加入排序欄位
+            let sortByInput = document.querySelector('input[name="SortBy"]');
+            if (!sortByInput) {
+                sortByInput = document.createElement('input');
+                sortByInput.type = 'hidden';
+                sortByInput.name = 'SortBy';
+                form.appendChild(sortByInput);
+            }
+            sortByInput.value = column;
+
+            // 加入排序方向（如果點擊同一欄位則切換方向）
+            let sortOrderInput = document.querySelector('input[name="SortOrder"]');
+            if (!sortOrderInput) {
+                sortOrderInput = document.createElement('input');
+                sortOrderInput.type = 'hidden';
+                sortOrderInput.name = 'SortOrder';
+                form.appendChild(sortOrderInput);
+            }
+
+            const currentSort = '@Model.SortBy';
+            const currentOrder = '@Model.SortOrder';
+
+            if (currentSort === column && currentOrder === 'ASC') {
+                sortOrderInput.value = 'DESC';
+            } else {
+                sortOrderInput.value = 'ASC';
+            }
+
+            // 送出查詢
+            const button = document.createElement('button');
+            button.type = 'submit';
+            button.name = 'handler';
+            button.value = 'Query';
+            button.style.display = 'none';
+            form.appendChild(button);
+            button.click();
+        }
+    </script>
+}
